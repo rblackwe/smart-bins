@@ -16,6 +16,7 @@ defmodule SmartBinsWeb.BinsLive do
     {:ok,
      socket
      |> assign(:bins_empty?, bins == [])
+     |> assign(:bins_count, length(bins))
      |> assign(:selected_bin, nil)
      |> assign(:search_term, "")
      |> assign(:status_filter, "all")
@@ -43,6 +44,7 @@ defmodule SmartBinsWeb.BinsLive do
      |> assign(:status_filter, status)
      |> assign(:container_filter, container)
      |> assign(:bins_empty?, bins == [])
+     |> assign(:bins_count, length(bins))
      |> stream(:bins, bins, reset: true)}
   end
 
