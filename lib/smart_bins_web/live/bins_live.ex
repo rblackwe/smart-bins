@@ -2,7 +2,7 @@ defmodule SmartBinsWeb.BinsLive do
   use SmartBinsWeb, :live_view
 
   alias SmartBins.Inventory
-  alias SmartBins.AWS
+  alias SmartBins.FileSystem
   alias SmartBins.AI
 
   @impl true
@@ -52,7 +52,7 @@ defmodule SmartBinsWeb.BinsLive do
   def handle_event("scan_bin", %{"id" => bin_id}, socket) do
     bin = Inventory.get_bin!(bin_id)
 
-    case AWS.get_image_data(bin.container_id, bin.bin_id, "index.png") do
+    case FileSystem.get_image_data(bin.container_id, bin.bin_id, "index.png") do
       {:ok, image_data} ->
         case AI.analyze_bin_image(image_data) do
           {:ok, ai_description} ->
