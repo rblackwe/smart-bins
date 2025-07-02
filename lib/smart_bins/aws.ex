@@ -1,86 +1,97 @@
-defmodule SmartBins.AWS do
+defmodule SmartBins.FileSystem do
   @moduledoc """
-  AWS S3 integration for fetching bin images.
+  Local filesystem module for reading bin images from priv/static/bin_images/
   """
-
-  alias ExAws.S3
-
-  @bucket Application.compile_env(:smart_bins, :s3_bucket, "smart-bins-images")
 
   @doc """
-  Gets the thumbnail URL for a bin (index.png).
-
-  ## Examples
-
-      iex> get_thumbnail_url(1, 24)
-      "https://s3.amazonaws.com/smart-bins-images/1/24/index.png"
-      
+  Gets image data from local filesystem at path:
+  priv/static/bin_images/{container_id}/{bin_id}/{filename}
   """
-  def get_thumbnail_url(container_id, bin_id) do
-    key = "#{container_id}/#{bin_id}/index.png"
-    ExAws.S3.presigned_url(:get, @bucket, key, expires_in: 3600)
+  def get_image_data(container_id, bin_id, filename) do
+    image_path =
+      Path.join([
+        Application.app_dir(:smart_bins, "priv/static/bin_images"),
+        to_string(container_id),
+        to_string(bin_id),
+        filename
+      ])
+
+    case File.read(image_path) do
+      {:ok, image_data} ->
+        {:ok, image_data}
+
+      {:error, :enoent} ->
+        # Create a placeholder image if file doesn't exist
+        create_placeholder_image(container_id, bin_id, filename)
+
+      {:error, reason} ->
+        {:error, "Failed to read image file: #{reason}"}
+    end
   end
 
   @doc """
-  Lists all images for a specific bin.
+  Creates a placeholder image for demo purposes
+  """
+  defp create_placeholder_image(container_id, bin_id, filename) do
+    # Create directory structure if it doesn't exist
+    dir_path =
+      Path.join([
+        Application.app_dir(:smart_bins, "priv/static/bin_images"),
+        to_string(container_id),
+        to_string(bin_id)
+      ])
 
-  ## Examples
+    File.mkdir_p!(dir_path)
 
-      iex> list_bin_images(1, 24)
-      {:ok, ["index.png", "detail1.jpg", "detail2.jpg"]}
-      
+    # Create a simple placeholder image (SVG for demo)
+    placeholder_svg = """
+    <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
+      <rect width="400" height="300" fill="#374151"/>
+      <text x="200" y="130" font-family="monospace" font-size="16" fill="#9CA3AF" text-anchor="middle">
+        BIN #{container_id}.#{bin_id}
+      </text>
+      <text x="200" y="160" font-family="monospace" font-size="12" fill="#6B7280" text-anchor="middle">
+        Demo Image
+      </text>
+      <text x="200" y="180" font-family="monospace" font-size="12" fill="#6B7280" text-anchor="middle">
+        #{filename}
+      </text>
+    </svg>
+    """
+
+    image_path = Path.join(dir_path, filename)
+    File.write!(image_path, placeholder_svg)
+
+    {:ok, placeholder_svg}
+  end
+
+  @doc """
+  Gets the URL path for serving images via Phoenix static plug
+  """
+  def get_image_url(container_id, bin_id, filename) do
+    "/bin_images/#{container_id}/#{bin_id}/#{filename}"
+  end
+
+  @doc """
+  Lists all image files for a given bin
   """
   def list_bin_images(container_id, bin_id) do
-    prefix = "#{container_id}/#{bin_id}/"
+    image_dir =
+      Path.join([
+        Application.app_dir(:smart_bins, "priv/static/bin_images"),
+        to_string(container_id),
+        to_string(bin_id)
+      ])
 
-    case S3.list_objects_v2(@bucket, prefix: prefix) |> ExAws.request() do
-      {:ok, %{body: %{contents: contents}}} ->
-        images =
-          contents
-          |> Enum.map(& &1.key)
-          |> Enum.filter(&String.ends_with?(&1, [".png", ".jpg", ".jpeg"]))
-          |> Enum.map(&Path.basename/1)
+    case File.ls(image_dir) do
+      {:ok, files} ->
+        {:ok, Enum.filter(files, &String.ends_with?(&1, [".png", ".jpg", ".jpeg", ".svg"]))}
 
-        {:ok, images}
+      {:error, :enoent} ->
+        {:ok, []}
 
       {:error, reason} ->
         {:error, reason}
-    end
-  end
-
-  @doc """
-  Checks if a bin has an index.png thumbnail.
-
-  ## Examples
-
-      iex> has_thumbnail?(1, 24)
-      true
-      
-  """
-  def has_thumbnail?(container_id, bin_id) do
-    key = "#{container_id}/#{bin_id}/index.png"
-
-    case S3.head_object(@bucket, key) |> ExAws.request() do
-      {:ok, _} -> true
-      {:error, _} -> false
-    end
-  end
-
-  @doc """
-  Gets the raw image data for analysis.
-
-  ## Examples
-
-      iex> get_image_data(1, 24, "index.png")
-      {:ok, <<binary_data>>}
-      
-  """
-  def get_image_data(container_id, bin_id, filename) do
-    key = "#{container_id}/#{bin_id}/#{filename}"
-
-    case S3.get_object(@bucket, key) |> ExAws.request() do
-      {:ok, %{body: body}} -> {:ok, body}
-      {:error, reason} -> {:error, reason}
     end
   end
 end
