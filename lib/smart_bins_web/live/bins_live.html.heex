@@ -1,0 +1,237 @@
+<Layouts.app flash={@flash}>
+  <div class="min-h-screen bg-slate-900 text-slate-100">
+    <!-- Header Controls -->
+    <div class="bg-slate-800 border-b border-slate-700 p-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-mono font-bold text-amber-400">SMART BINS INVENTORY</h1>
+        <div class="text-sm text-slate-400 font-mono">
+          {length(@streams.bins)} bins tracked
+        </div>
+      </div>
+      
+<!-- Filter Controls -->
+      <form phx-change="filter" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-xs font-mono text-slate-400 mb-1">SEARCH</label>
+          <input
+            type="text"
+            name="search"
+            value={@search_term}
+            placeholder="Search bins..."
+            class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-slate-100 text-sm font-mono focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs font-mono text-slate-400 mb-1">STATUS</label>
+          <select
+            name="status"
+            class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-slate-100 text-sm font-mono focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+          >
+            <option value="all" selected={@status_filter == "all"}>All</option>
+            <option value="full" selected={@status_filter == "full"}>Full</option>
+            <option value="partial" selected={@status_filter == "partial"}>Partial</option>
+            <option value="empty" selected={@status_filter == "empty"}>Empty</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-mono text-slate-400 mb-1">CONTAINER</label>
+          <select
+            name="container"
+            class="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-slate-100 text-sm font-mono focus:border-amber-400 focus:ring-1 focus:ring-amber-400"
+          >
+            <option value="all" selected={@container_filter == "all"}>All</option>
+            <%= for i <- 1..10 do %>
+              <option value={i} selected={@container_filter == to_string(i)}>
+                Container {i}
+              </option>
+            <% end %>
+          </select>
+        </div>
+
+        <div class="flex items-end">
+          <button
+            type="button"
+            class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-slate-900 font-mono text-sm font-bold rounded transition-colors"
+          >
+            SCAN ALL
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <div class="flex">
+      <!-- Bins Table -->
+      <div class="flex-1">
+        <%= if @bins_empty? do %>
+          <div class="p-8 text-center">
+            <div class="text-slate-500 text-lg font-mono">NO BINS FOUND</div>
+            <div class="text-slate-600 text-sm mt-2">Add bins or adjust your filters</div>
+          </div>
+        <% else %>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm font-mono">
+              <thead class="bg-slate-800 border-b border-slate-700">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    BIN ID
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    DESCRIPTION
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    AI ANALYSIS
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    STATUS
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    LAST SCAN
+                  </th>
+                  <th class="px-4 py-3 text-left text-xs font-bold text-amber-400 uppercase tracking-wider">
+                    ACTIONS
+                  </th>
+                </tr>
+              </thead>
+              <tbody id="bins" phx-update="stream" class="bg-slate-900 divide-y divide-slate-700">
+                <%= for {id, bin} <- @streams.bins do %>
+                  <tr
+                    id={id}
+                    class={[
+                      "hover:bg-slate-800 cursor-pointer transition-colors",
+                      @selected_bin && @selected_bin.id == bin.id &&
+                        "bg-slate-700 border-l-4 border-amber-400"
+                    ]}
+                    phx-click="select_bin"
+                    phx-value-id={bin.id}
+                  >
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <div class="text-amber-300 font-bold">
+                        {bin.container_id}.{bin.bin_id}
+                      </div>
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="text-slate-100 truncate max-w-xs">
+                        {bin.description || "No description"}
+                      </div>
+                    </td>
+                    <td class="px-4 py-3">
+                      <div class="text-slate-300 text-xs truncate max-w-xs">
+                        {bin.ai_description || "Not scanned"}
+                      </div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <span class={[
+                        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                        status_class(bin.status)
+                      ]}>
+                        {String.upcase(bin.status)}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-slate-400 text-xs">
+                      <%= if bin.last_scanned_at do %>
+                        {Calendar.strftime(bin.last_scanned_at, "%m/%d %H:%M")}
+                      <% else %>
+                        Never
+                      <% end %>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                      <button
+                        phx-click="scan_bin"
+                        phx-value-id={bin.id}
+                        class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded transition-colors"
+                      >
+                        SCAN
+                      </button>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+      
+<!-- Image Gallery Sidebar -->
+      <%= if @selected_bin do %>
+        <div class="w-80 bg-slate-800 border-l border-slate-700 p-4">
+          <div class="text-amber-400 font-mono font-bold mb-4">
+            BIN {@selected_bin.container_id}.{@selected_bin.bin_id}
+          </div>
+          
+<!-- Thumbnail -->
+          <div class="bg-slate-700 rounded-lg p-4 mb-4">
+            <div class="aspect-square bg-slate-600 rounded-lg flex items-center justify-center">
+              <div class="text-slate-500 text-sm font-mono">
+                {@selected_bin.container_id}.{@selected_bin.bin_id}/index.png
+              </div>
+            </div>
+          </div>
+          
+<!-- Details -->
+          <div class="space-y-3">
+            <div>
+              <div class="text-xs font-mono text-slate-400 mb-1">DESCRIPTION</div>
+              <div class="text-sm text-slate-100">
+                {@selected_bin.description || "No description"}
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-mono text-slate-400 mb-1">AI ANALYSIS</div>
+              <div class="text-sm text-slate-300">
+                {@selected_bin.ai_description || "Not analyzed"}
+              </div>
+            </div>
+
+            <div>
+              <div class="text-xs font-mono text-slate-400 mb-1">STATUS</div>
+              <span class={[
+                "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                status_class(@selected_bin.status)
+              ]}>
+                {String.upcase(@selected_bin.status)}
+              </span>
+            </div>
+
+            <%= if @selected_bin.last_scanned_at do %>
+              <div>
+                <div class="text-xs font-mono text-slate-400 mb-1">LAST SCANNED</div>
+                <div class="text-sm text-slate-300">
+                  {Calendar.strftime(@selected_bin.last_scanned_at, "%B %d, %Y at %H:%M")}
+                </div>
+              </div>
+            <% end %>
+          </div>
+          
+<!-- Actions -->
+          <div class="mt-6 space-y-2">
+            <button
+              phx-click="scan_bin"
+              phx-value-id={@selected_bin.id}
+              class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-mono text-sm font-bold rounded transition-colors"
+            >
+              RESCAN BIN
+            </button>
+            <button class="w-full px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white font-mono text-sm font-bold rounded transition-colors">
+              EDIT BIN
+            </button>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</Layouts.app>
+
+<script>
+  // Helper function for status styling
+  function status_class(status) {
+    switch(status) {
+      case "full": return "bg-green-100 text-green-800";
+      case "partial": return "bg-yellow-100 text-yellow-800";
+      case "empty": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  }
+</script>
