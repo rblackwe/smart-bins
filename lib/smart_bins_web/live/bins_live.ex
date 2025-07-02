@@ -54,7 +54,6 @@ defmodule SmartBinsWeb.BinsLive do
       {:ok, image_data} ->
         case AI.analyze_bin_image(image_data) do
           {:ok, ai_description} ->
-
             {:ok, updated_bin} =
               Inventory.update_bin(bin, %{
                 ai_description: ai_description,
@@ -106,12 +105,13 @@ defmodule SmartBinsWeb.BinsLive do
 
   defp filter_by_container(bins, "all"), do: bins
 
-  defp status_class("full"), do: "bg-green-100 text-green-800"\
-  defp status_class("partial"), do: "bg-yellow-100 text-yellow-800"\
-  defp status_class("empty"), do: "bg-red-100 text-red-800"\
-  defp status_class(_), do: "bg-gray-100 text-gray-800"
   defp filter_by_container(bins, container) do
     container_id = String.to_integer(container)
     Enum.filter(bins, &(&1.container_id == container_id))
   end
+
+  defp status_class("full"), do: "bg-green-100 text-green-800"
+  defp status_class("partial"), do: "bg-yellow-100 text-yellow-800"
+  defp status_class("empty"), do: "bg-red-100 text-red-800"
+  defp status_class(_), do: "bg-gray-100 text-gray-800"
 end
