@@ -1,110 +1,122 @@
 defmodule SmartBins.AI do
   @moduledoc """
-  OpenAI Vision API integration for bin content identification.
+  Mock AI module for generating realistic bin content descriptions for demo purposes
   """
-
-  @openai_api_key Application.compile_env(
-                    :smart_bins,
-                    :openai_api_key,
-                    System.get_env("OPENAI_API_KEY")
-                  )
-  @openai_url "https://api.openai.com/v1/chat/completions"
 
   @doc """
-  Analyzes an image using OpenAI Vision API to identify bin contents.
-
-  ## Examples
-
-      iex> analyze_bin_image(image_data)
-      {:ok, "M4 socket head cap screws, various lengths, stainless steel"}
-
+  Analyzes bin image and returns a mock AI description
   """
-  def analyze_bin_image(image_data) when is_binary(image_data) do
-    base64_image = Base.encode64(image_data)
+  def analyze_bin_image(_image_data) do
+    # Simulate processing time
+    Process.sleep(Enum.random(500..1500))
 
-    payload = %{
-      model: "gpt-4-vision-preview",
-      messages: [
-        %{
-          role: "user",
-          content: [
-            %{
-              type: "text",
-              text:
-                "You are analyzing the contents of a parts bin in a warehouse. Describe what you see in this bin in a concise, practical way. Focus on: 1) Type of items 2) Material/specifications if visible 3) Approximate quantity. Keep it under 100 characters for inventory purposes."
-            },
-            %{
-              type: "image_url",
-              image_url: %{
-                url: "data:image/jpeg;base64,#{base64_image}"
-              }
-            }
-          ]
-        }
-      ],
-      max_tokens: 150
-    }
+    # Generate a realistic AI description
+    description = generate_random_description()
 
-    headers = [
-      {"Authorization", "Bearer #{@openai_api_key}"},
-      {"Content-Type", "application/json"}
-    ]
-
-    case Req.post(@openai_url, json: payload, headers: headers) do
-      {:ok, %{status: 200, body: %{"choices" => [%{"message" => %{"content" => content}} | _]}}} ->
-        {:ok, String.trim(content)}
-
-      {:ok, %{status: status, body: body}} ->
-        {:error, "OpenAI API error: #{status} - #{inspect(body)}"}
-
-      {:error, reason} ->
-        {:error, "Request failed: #{inspect(reason)}"}
-    end
+    {:ok, description}
   end
 
-  @doc """
-  Suggests tags based on AI analysis of bin contents.
-
-  ## Examples
-
-      iex> suggest_tags("M4 socket head cap screws, stainless steel")
-      ["Hardware", "M4", "Screws", "Steel"]
-
-  """
-  def suggest_tags(ai_description) do
-    # Simple keyword extraction for now
-    # Could be enhanced with more sophisticated AI analysis
-    keywords = [
-      {"screw", "Screws"},
-      {"bolt", "Bolts"},
-      {"nut", "Nuts"},
-      {"washer", "Washers"},
-      {"arduino", "Arduino"},
-      {"resistor", "Resistors"},
-      {"capacitor", "Capacitors"},
-      {"led", "LEDs"},
-      {"wire", "Wire"},
-      {"cable", "Cables"},
-      {"connector", "Connectors"},
-      {"m3", "M3"},
-      {"m4", "M4"},
-      {"m5", "M5"},
-      {"steel", "Steel"},
-      {"plastic", "Plastic"},
-      {"aluminum", "Aluminum"},
-      {"brass", "Brass"},
-      {"electronic", "Electronics"},
-      {"hardware", "Hardware"},
-      {"fastener", "Fasteners"}
+  defp generate_random_description do
+    categories = [
+      "electronics",
+      "hardware",
+      "tools",
+      "fasteners",
+      "components",
+      "materials",
+      "supplies"
     ]
 
-    description_lower = String.downcase(ai_description)
+    electronics_items = [
+      "Arduino Uno microcontrollers",
+      "ESP32 development boards",
+      "Raspberry Pi Zero boards",
+      "LED strips (WS2812B)",
+      "Resistors (220Ω, 1kΩ, 10kΩ)",
+      "Capacitors (ceramic, electrolytic)",
+      "Breadboards (half-size)",
+      "Jumper wires (male-to-male)",
+      "Push buttons (tactile switches)",
+      "Potentiometers (10kΩ linear)",
+      "Servo motors (SG90)",
+      "Stepper motors (NEMA 17)",
+      "Temperature sensors (DS18B20)",
+      "Ultrasonic sensors (HC-SR04)",
+      "OLED displays (0.96 inch)",
+      "Power supplies (5V, 12V)",
+      "Soldering flux and tips"
+    ]
 
-    keywords
-    |> Enum.filter(fn {keyword, _tag} -> String.contains?(description_lower, keyword) end)
-    |> Enum.map(fn {_keyword, tag} -> tag end)
-    |> Enum.uniq()
-    # Limit to 5 tags
-    |> Enum.take(5)
+    hardware_items = [
+      "M3 x 8mm socket head screws",
+      "M4 x 12mm hex bolts",
+      "M5 washers (stainless steel)",
+      "Hex nuts (M3, M4, M6)",
+      "Lock washers (spring type)",
+      "Threaded inserts (brass)",
+      "T-slot nuts (2020 extrusion)",
+      "Ball bearings (608ZZ)",
+      "Linear rods (8mm diameter)",
+      "GT2 timing belts",
+      "Pulleys (20T, 5mm bore)",
+      "Aluminum angle brackets",
+      "Corner brackets (90 degree)",
+      "Machine screws (Phillips head)",
+      "Threaded rods (M8 x 300mm)"
+    ]
+
+    tools_items = [
+      "Precision screwdrivers (Phillips)",
+      "Hex keys (1.5mm to 6mm set)",
+      "Wire strippers (20-30 AWG)",
+      "Digital calipers (150mm)",
+      "Tweezers (fine point, anti-static)",
+      "Soldering iron tips (chisel, conical)",
+      "Desoldering braid (copper)",
+      "Heat shrink tubing (assorted)",
+      "Cable ties (100mm, 200mm)",
+      "Electrical tape (black, red)",
+      "Multimeter probes",
+      "Third hand with magnifier",
+      "Flux pen dispensers",
+      "Solder (60/40, lead-free)",
+      "Anti-static wrist straps"
+    ]
+
+    fasteners_items = [
+      "Wood screws (#6, #8, #10)",
+      "Drywall anchors (plastic)",
+      "Toggle bolts (1/4 inch)",
+      "Carriage bolts (M6 x 40mm)",
+      "Wing nuts (stainless steel)",
+      "Thumb screws (knurled)",
+      "Set screws (socket head)",
+      "Cotter pins (assorted sizes)",
+      "Snap rings (external, internal)",
+      "Clevis pins (quick release)",
+      "Retaining clips (E-clips)",
+      "Rivets (aluminum, steel)",
+      "Thread locker (medium strength)",
+      "Washers (flat, split, fender)"
+    ]
+
+    category = Enum.random(categories)
+
+    items =
+      case category do
+        "electronics" -> electronics_items
+        "hardware" -> hardware_items
+        "tools" -> tools_items
+        "fasteners" -> fasteners_items
+        _ -> electronics_items ++ hardware_items ++ tools_items
+      end
+
+    item = Enum.random(items)
+    count = Enum.random(5..50)
+    condition = Enum.random(["good", "excellent", "fair", "new", "used"])
+
+    confidence = Enum.random(85..98)
+
+    "AI detected: #{item} (qty: ~#{count}, condition: #{condition}) - #{confidence}% confidence"
   end
 end
