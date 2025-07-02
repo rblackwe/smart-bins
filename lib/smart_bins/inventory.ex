@@ -1,3 +1,80 @@
+defmodule SmartBins.Inventory.Bin do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  alias SmartBins.Inventory.{Tag, BinTag}
+
+  schema "bins" do
+    field :container_id, :integer
+    field :bin_id, :integer
+    field :description, :string
+    field :ai_description, :string
+    field :thumbnail_url, :string
+    field :status, :string, default: "empty"
+    field :last_scanned_at, :naive_datetime
+    field :notes, :string
+
+    many_to_many :tags, Tag, join_through: BinTag, on_replace: :delete
+
+    timestamps()
+  end
+
+  @doc false
+  def changeset(bin, attrs) do
+    bin
+    |> cast(attrs, [
+      :container_id,
+      :bin_id,
+      :description,
+      :ai_description,
+      :thumbnail_url,
+      :status,
+      :last_scanned_at,
+      :notes
+    ])
+    |> validate_required([:container_id, :bin_id])
+    |> validate_inclusion(:status, ["empty", "partial", "full"])
+    |> unique_constraint([:container_id, :bin_id])
+  end
+end
+
+defmodule SmartBins.Inventory.Tag do
+  use Ecto.Schema
+  import Ecto.Changeset
+
+  alias SmartBins.Inventory.{Bin, BinTag}
+
+  schema "tags" do
+    field :name, :string
+    field :color, :string, default: "#065f46"
+
+    many_to_many :bins, Bin, join_through: BinTag
+
+    timestamps()
+  end
+
+  @doc false
+  def changeset(tag, attrs) do
+    tag
+    |> cast(attrs, [:name, :color])
+    |> validate_required([:name])
+    |> unique_constraint(:name)
+  end
+end
+
+defmodule SmartBins.Inventory.BinTag do
+  use Ecto.Schema
+
+  alias SmartBins.Inventory.{Bin, Tag}
+
+  schema "bin_tags" do
+    belongs_to :bin, Bin
+    belongs_to :tag, Tag
+
+    timestamps()
+  end
+end
+
 defmodule SmartBins.Inventory do
   @moduledoc """
   The Inventory context.
@@ -147,82 +224,5 @@ defmodule SmartBins.Inventory do
       tag ->
         {:ok, tag}
     end
-  end
-end
-
-defmodule SmartBins.Inventory.Bin do
-  use Ecto.Schema
-  import Ecto.Changeset
-
-  alias SmartBins.Inventory.{Tag, BinTag}
-
-  schema "bins" do
-    field :container_id, :integer
-    field :bin_id, :integer
-    field :description, :string
-    field :ai_description, :string
-    field :thumbnail_url, :string
-    field :status, :string, default: "empty"
-    field :last_scanned_at, :naive_datetime
-    field :notes, :string
-
-    many_to_many :tags, Tag, join_through: BinTag, on_replace: :delete
-
-    timestamps()
-  end
-
-  @doc false
-  def changeset(bin, attrs) do
-    bin
-    |> cast(attrs, [
-      :container_id,
-      :bin_id,
-      :description,
-      :ai_description,
-      :thumbnail_url,
-      :status,
-      :last_scanned_at,
-      :notes
-    ])
-    |> validate_required([:container_id, :bin_id])
-    |> validate_inclusion(:status, ["empty", "partial", "full"])
-    |> unique_constraint([:container_id, :bin_id])
-  end
-end
-
-defmodule SmartBins.Inventory.Tag do
-  use Ecto.Schema
-  import Ecto.Changeset
-
-  alias SmartBins.Inventory.{Bin, BinTag}
-
-  schema "tags" do
-    field :name, :string
-    field :color, :string, default: "#065f46"
-
-    many_to_many :bins, Bin, join_through: BinTag
-
-    timestamps()
-  end
-
-  @doc false
-  def changeset(tag, attrs) do
-    tag
-    |> cast(attrs, [:name, :color])
-    |> validate_required([:name])
-    |> unique_constraint(:name)
-  end
-end
-
-defmodule SmartBins.Inventory.BinTag do
-  use Ecto.Schema
-
-  alias SmartBins.Inventory.{Bin, Tag}
-
-  schema "bin_tags" do
-    belongs_to :bin, Bin
-    belongs_to :tag, Tag
-
-    timestamps()
   end
 end
