@@ -17,7 +17,7 @@ defmodule SmartBinsWeb.Router do
   scope "/", SmartBinsWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", BinsLive
   end
 
   # Other scopes may use custom stacks.
