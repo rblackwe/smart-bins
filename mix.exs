@@ -1,3 +1,33 @@
+===> Analyzing applications...
+===> Compiling unicode_util_compat
+===> Analyzing applications...
+===> Compiling idna
+===> Analyzing applications...
+===> Compiling mimerl
+==> ssl_verify_fun
+Compiling 7 files (.erl)
+Generated ssl_verify_fun app
+==> smart_bins
+===> Analyzing applications...
+===> Compiling certifi
+===> Analyzing applications...
+===> Compiling parse_trans
+===> Analyzing applications...
+===> Compiling metrics
+===> Analyzing applications...
+===> Compiling hackney
+==> sweet_xml
+Compiling 2 files (.ex)
+Generated sweet_xml app
+==> ex_aws
+Compiling 28 files (.ex)
+Generated ex_aws app
+==> swoosh
+Compiling 53 files (.ex)
+Generated swoosh app
+==> ex_aws_s3
+Compiling 7 files (.ex)
+Generated ex_aws_s3 app
 defmodule SmartBins.MixProject do
   use Mix.Project
 
